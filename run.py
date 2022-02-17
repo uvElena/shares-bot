@@ -103,7 +103,7 @@ def update(update: Update, context: CallbackContext) -> None:
         try:
             USER_SHARES[chat_id] = parse_data(update_shares)
             message = 'You have update your shares'
-        except IndexError:
+        except (IndexError, ValueError):
             message = 'Error occurred during the update'
     send_message(update, message)
 

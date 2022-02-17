@@ -9,7 +9,8 @@ from telegram import ParseMode
 
 
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,8 @@ def get_curr_price():
     url = "https://marketwatch.com/investing/stock/csco"
     req = requests.get(url)
     soup = BeautifulSoup(req.content, 'html.parser')
-    # <bg-quote channel="/zigman2/quotes/209509471/composite,/zigman2/quotes/209509471/lastsale"
+    # <bg-quote
+    # channel="/zigman2/quotes/209509471/composite,/zigman2/quotes/209509471/lastsale"
     # class="value" field="Last" format="0,0.00" session="pre">63.38</bg-quote>
     curr_price = soup.find('bg-quote', class_="value").contents
     curr_price = float(curr_price[0])
@@ -52,16 +54,19 @@ def get_keyboard():
     return ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
-def start(update: Update, context: CallbackContext) -> None:
+def send_message(update: Update, message) -> None:
     update.message.reply_text(
-        'Welcome to Cisco Shares Bot! Select /help to see help message.',
-        reply_markup=get_keyboard()
+        message, reply_markup=get_keyboard(), parse_mode=ParseMode.MARKDOWN
     )
 
 
+def start(update: Update, context: CallbackContext) -> None:
+    message = 'Welcome to Cisco Shares Bot! Select /help to see help message.'
+    send_message(update, message)
+
+
 def help_command(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text(
-        '''
+    message = '''
 /help - show help message commands description
 /show - show current shares
 /profit - calculate your profit
@@ -69,10 +74,8 @@ def help_command(update: Update, context: CallbackContext) -> None:
 ```
     /update
     01/31/2011   $63.37   01/05/2012 13
-```''',
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=get_keyboard()
-    )
+```'''
+    send_message(update, message)
 
 
 def profit(update: Update, context: CallbackContext) -> None:
@@ -80,15 +83,10 @@ def profit(update: Update, context: CallbackContext) -> None:
     curr_price = get_curr_price()
     try:
         today_profit = calc_profit(USER_SHARES[chat_id], curr_price)
-        update.message.reply_text(
-            f'Your profit today is: ${today_profit:.2f}',
-            reply_markup=get_keyboard()
-        )
+        message = f'Your profit today is: ${today_profit:.2f}'
     except KeyError:
-        update.message.reply_text(
-            'You should update your shares',
-            reply_markup=get_keyboard()
-        )
+        message = 'You should update your shares'
+    send_message(update, message)
 
 
 def update(update: Update, context: CallbackContext) -> None:
@@ -100,44 +98,35 @@ def update(update: Update, context: CallbackContext) -> None:
 
     if update_shares == '':
         USER_SHARES[chat_id] = []
-        update.message.reply_text(
-            'You have reseted all your shares',
-            reply_markup=get_keyboard()
-        )
+        message = 'You have reseted all your shares'
     else:
         try:
             USER_SHARES[chat_id] = parse_data(update_shares)
-            update.message.reply_text(
-                'You have update your shares',
-                reply_markup=get_keyboard()
-            )
+            message = 'You have update your shares'
         except IndexError:
-            update.message.reply_text(
-                'Error occurred during the update',
-                reply_markup=get_keyboard()
-            )
+            message = 'Error occurred during the update'
+    send_message(update, message)
 
 
 def show(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat.id
     try:
-        shares = [f"| {d['count']:<8n} | ${d['price']:.2f} |" for d in USER_SHARES[chat_id]]
+        shares = [
+            f"| {d['count']:<8n} | ${d['price']:.2f} |"
+            for d in USER_SHARES[chat_id]
+        ]
 
         table_header = f"| {'Count':<8} | Price  |"
         separator = '+' + '-' * 10 + '+' + '-' * 8 + '+'
         table_body = '\n'.join(shares)
-        table = '\n'.join([separator, table_header, separator, table_body, separator])
+        table = '\n'.join([
+            separator, table_header, separator, table_body, separator
+        ])
 
-        update.message.reply_text(
-            f"```\n{table}\n```",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=get_keyboard()
-        )
+        message = f"```\n{table}\n```"
     except KeyError:
-        update.message.reply_text(
-            'You should update your shares',
-            reply_markup=get_keyboard()
-        )
+        message = 'You should update your shares'
+    send_message(update, message)
 
 
 def main() -> None:

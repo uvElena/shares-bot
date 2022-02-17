@@ -33,7 +33,7 @@ def get_curr_price():
 def parse_line(str_line):
     lst = str_line.split()
     # ['05/30/2015', '$12.0279', 'Dividend', 'Reinvestment', '4.3079']
-    return {'price': float(lst[1][1:]), 'count': float(lst[-1])}
+    return {'price': float(lst[1].lstrip('$')), 'count': float(lst[-1])}
 
 
 def parse_data(str_lines):

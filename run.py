@@ -2,6 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import logging
+import collections
 
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext
@@ -15,7 +16,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-USER_SHARES = {}
+USER_SHARES = collections.defaultdict(list)
 
 
 def get_curr_price():
@@ -81,11 +82,8 @@ def help_command(update: Update, context: CallbackContext) -> None:
 def profit(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat.id
     curr_price = get_curr_price()
-    try:
-        today_profit = calc_profit(USER_SHARES[chat_id], curr_price)
-        message = f'Your profit today is: ${today_profit:.2f}'
-    except KeyError:
-        message = 'You should update your shares'
+    today_profit = calc_profit(USER_SHARES[chat_id], curr_price)
+    message = f'Your profit today is: ${today_profit:.2f}'
     send_message(update, message)
 
 
@@ -110,22 +108,20 @@ def update(update: Update, context: CallbackContext) -> None:
 
 def show(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat.id
-    try:
-        shares = [
-            f"| {d['count']:<8n} | ${d['price']:.2f} |"
-            for d in USER_SHARES[chat_id]
-        ]
 
-        table_header = f"| {'Count':<8} | Price  |"
-        separator = '+' + '-' * 10 + '+' + '-' * 8 + '+'
-        table_body = '\n'.join(shares)
-        table = '\n'.join([
-            separator, table_header, separator, table_body, separator
-        ])
+    shares = [
+        f"| {d['count']:<8n} | ${d['price']:.2f} |"
+        for d in USER_SHARES[chat_id]
+    ]
 
-        message = f"```\n{table}\n```"
-    except KeyError:
-        message = 'You should update your shares'
+    table_header = f"| {'Count':<8} | Price  |"
+    separator = '+' + '-' * 10 + '+' + '-' * 8 + '+'
+    table_body = '\n'.join(shares)
+    table = '\n'.join([
+        separator, table_header, separator, table_body, separator
+    ])
+
+    message = f"```\n{table}\n```"
     send_message(update, message)
 
 

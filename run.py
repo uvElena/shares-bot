@@ -68,7 +68,7 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def help_command(update: Update, context: CallbackContext) -> None:
     message = '''
-/help - show help message commands description
+/help - show help message and commands description
 /show - show current shares
 /profit - calculate your profit
 /update - update or reset shares. Example:
@@ -96,11 +96,11 @@ def update(update: Update, context: CallbackContext) -> None:
 
     if update_shares == '':
         USER_SHARES[chat_id] = []
-        message = 'You have reseted all your shares'
+        message = 'You have reset all your shares'
     else:
         try:
             USER_SHARES[chat_id] = parse_data(update_shares)
-            message = 'You have update your shares'
+            message = 'You have updated your shares'
         except (IndexError, ValueError):
             message = 'Error occurred during the update'
     send_message(update, message)

@@ -1,0 +1,5 @@
+services:
+  shares-bot:
+    build: .
+    environment:
+      - TOKEN=${TOKEN}

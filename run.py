@@ -83,7 +83,23 @@ def profit(update: Update, context: CallbackContext) -> None:
     chat_id = update.message.chat.id
     curr_price = get_curr_price()
     today_profit = calc_profit(USER_SHARES[chat_id], curr_price)
-    message = f'Your profit today is: ${today_profit:.2f}'
+
+    shares = [
+        f"| {d['count']:<8n} "
+        f"| ${d['price']:<8.2f} "
+        f"| ${(curr_price - d['price']) * d['count']:<8.2f} |"
+        for d in USER_SHARES[chat_id]
+    ]
+
+    table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
+    separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
+    table_body = '\n'.join(shares)
+    table_bottom = f'| Total profit today is: ${today_profit:<8.2f} |'
+    table = '\n'.join([
+        separator, table_header, separator, table_body,
+        separator, table_bottom, separator
+    ])
+    message = f"```\n{table}\n```"
     send_message(update, message)
 
 

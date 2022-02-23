@@ -55,19 +55,23 @@ def get_keyboard():
     return ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
-def send_message(update: Update, message) -> None:
-    update.message.reply_text(
-        message, reply_markup=get_keyboard(), parse_mode=ParseMode.MARKDOWN
-    )
+def with_reply(func):
+    def inner(update: Update, context: CallbackContext):
+        message = func(update, context)
+        update.message.reply_text(
+            message, reply_markup=get_keyboard(), parse_mode=ParseMode.MARKDOWN
+        )
+    return inner
 
 
-def start(update: Update, context: CallbackContext) -> None:
-    message = 'Welcome to Cisco Shares Bot! Select /help to see help message.'
-    send_message(update, message)
+@with_reply
+def start(update: Update, context: CallbackContext):
+    return 'Welcome to Cisco Shares Bot! Select /help to see help message.'
 
 
-def help_command(update: Update, context: CallbackContext) -> None:
-    message = '''
+@with_reply
+def help_command(update: Update, context: CallbackContext):
+    return '''
 /help - show help message and commands description
 /show - show current shares
 /profit - calculate your profit
@@ -76,10 +80,10 @@ def help_command(update: Update, context: CallbackContext) -> None:
     /update
     01/31/2011   $63.37   01/05/2012 13
 ```'''
-    send_message(update, message)
 
 
-def profit(update: Update, context: CallbackContext) -> None:
+@with_reply
+def profit(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
     curr_price = get_curr_price()
     today_profit = calc_profit(USER_SHARES[chat_id], curr_price)
@@ -99,11 +103,11 @@ def profit(update: Update, context: CallbackContext) -> None:
         separator, table_header, separator, table_body,
         separator, table_bottom, separator
     ])
-    message = f"```\n{table}\n```"
-    send_message(update, message)
+    return f"```\n{table}\n```"
 
 
-def update(update: Update, context: CallbackContext) -> None:
+@with_reply
+def update(update: Update, context: CallbackContext):
     update_shares = update.message.text
     chat_id = update.message.chat.id
 
@@ -112,17 +116,17 @@ def update(update: Update, context: CallbackContext) -> None:
 
     if update_shares == '':
         USER_SHARES[chat_id] = []
-        message = 'You have reset all your shares'
+        return 'You have reset all your shares'
     else:
         try:
             USER_SHARES[chat_id] = parse_data(update_shares)
-            message = 'You have updated your shares'
+            return 'You have updated your shares'
         except (IndexError, ValueError):
-            message = 'Error occurred during the update'
-    send_message(update, message)
+            return 'Error occurred during the update'
 
 
-def show(update: Update, context: CallbackContext) -> None:
+@with_reply
+def show(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
 
     shares = [
@@ -137,8 +141,7 @@ def show(update: Update, context: CallbackContext) -> None:
         separator, table_header, separator, table_body, separator
     ])
 
-    message = f"```\n{table}\n```"
-    send_message(update, message)
+    return f"```\n{table}\n```"
 
 
 def main() -> None:

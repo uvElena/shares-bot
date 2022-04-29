@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import logging
 import collections
+from datetime import date
 
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext
@@ -98,12 +99,21 @@ def profit(update: Update, context: CallbackContext):
     table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
     separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
     table_body = '\n'.join(shares)
-    table_bottom = f'| Total profit today is: ${today_profit:<8.2f} |'
     table = '\n'.join([
-        separator, table_header, separator, table_body,
-        separator, table_bottom, separator
+        separator, table_header,
+        separator, table_body,
+        separator,
     ])
-    return f"```\n{table}\n```"
+
+    today = date.today().strftime("%d.%m.%Y")
+    return '\n'.join([
+        '```',
+        table,
+        f'Date: {today}',
+        f'Current price: ${curr_price:<8.2f}',
+        f'Total profit: ${today_profit:<8.2f}',
+        '```'
+    ])
 
 
 @with_reply

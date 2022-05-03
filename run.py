@@ -5,10 +5,9 @@ import logging
 import collections
 from datetime import date
 
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackContext
-from telegram import ParseMode
-
+from telegram import Update, ReplyKeyboardMarkup, ParseMode
+from telegram.ext import MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -163,6 +162,10 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("profit", profit))
     dispatcher.add_handler(CommandHandler("update", update))
     dispatcher.add_handler(CommandHandler("show", show))
+
+    dispatcher.add_handler(
+        MessageHandler(Filters.text & ~Filters.command, help_command)
+    )
 
     updater.start_polling()
     updater.idle()

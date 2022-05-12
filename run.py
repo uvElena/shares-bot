@@ -1,8 +1,8 @@
 import os
 import requests
+import json
 from bs4 import BeautifulSoup
 import logging
-import collections
 from datetime import date
 
 from telegram import Update, ReplyKeyboardMarkup, ParseMode
@@ -15,8 +15,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-USER_SHARES = collections.defaultdict(list)
 
 
 def get_curr_price():
@@ -55,6 +53,16 @@ def get_keyboard():
     return ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
+def write_shares(shares):
+    with open("state/shares.json", "w") as outfile:
+        json.dump(shares, outfile)
+
+
+def get_shares():
+    with open('state/shares.json') as json_file:
+        return json.load(json_file)
+
+
 def with_reply(func):
     def inner(update: Update, context: CallbackContext):
         message = func(update, context)
@@ -84,15 +92,17 @@ def help_command(update: Update, context: CallbackContext):
 
 @with_reply
 def profit(update: Update, context: CallbackContext):
-    chat_id = update.message.chat.id
+    chat_id = str(update.message.chat.id)
     curr_price = get_curr_price()
-    today_profit = calc_profit(USER_SHARES[chat_id], curr_price)
+    shares_data = get_shares()
+
+    today_profit = calc_profit(shares_data.get(chat_id, []), curr_price)
 
     shares = [
         f"| {d['count']:<8n} "
         f"| ${d['price']:<8.2f} "
         f"| ${(curr_price - d['price']) * d['count']:<8.2f} |"
-        for d in USER_SHARES[chat_id]
+        for d in shares_data.get(chat_id, [])
     ]
 
     table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
@@ -118,17 +128,19 @@ def profit(update: Update, context: CallbackContext):
 @with_reply
 def update(update: Update, context: CallbackContext):
     update_shares = update.message.text
-    chat_id = update.message.chat.id
-
+    chat_id = str(update.message.chat.id)
     # remove /update
     update_shares = update_shares[len('/update'):].strip()
+    shares_data = get_shares()
 
     if update_shares == '':
-        USER_SHARES[chat_id] = []
+        shares_data[chat_id] = []
+        write_shares(shares_data)
         return 'You have reset all your shares'
     else:
         try:
-            USER_SHARES[chat_id] = parse_data(update_shares)
+            shares_data[chat_id] = parse_data(update_shares)
+            write_shares(shares_data)
             return 'You have updated your shares'
         except (IndexError, ValueError):
             return 'Error occurred during the update'
@@ -136,11 +148,12 @@ def update(update: Update, context: CallbackContext):
 
 @with_reply
 def show(update: Update, context: CallbackContext):
-    chat_id = update.message.chat.id
+    chat_id = str(update.message.chat.id)
+    shares_data = get_shares()
 
     shares = [
         f"| {d['count']:<8n} | ${d['price']:.2f} |"
-        for d in USER_SHARES[chat_id]
+        for d in shares_data.get(chat_id, [])
     ]
 
     table_header = f"| {'Count':<8} | Price  |"

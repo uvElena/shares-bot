@@ -3,3 +3,5 @@ services:
     build: .
     environment:
       - TOKEN=${TOKEN}
+    volumes:
+      - ./state:/shares-bot/state

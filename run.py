@@ -59,8 +59,12 @@ def write_shares(shares):
 
 
 def get_shares():
-    with open('state/shares.json') as json_file:
-        return json.load(json_file)
+    try:
+        with open('state/shares.json') as json_file:
+            return json.load(json_file)
+    except (json.JSONDecodeError, FileNotFoundError):
+        logger.exception("Error during file load:")
+        return {}
 
 
 def with_reply(func):
@@ -136,6 +140,7 @@ def update(update: Update, context: CallbackContext):
     if update_shares == '':
         shares_data[chat_id] = []
         write_shares(shares_data)
+        logger.info(f"Shares have been reset for chat_id = {chat_id}")
         return 'You have reset all your shares'
     else:
         try:

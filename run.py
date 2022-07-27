@@ -53,14 +53,14 @@ def get_keyboard():
     return ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
-def write_shares(shares):
-    with open("state/shares.json", "w") as outfile:
+def write_shares(shares, id):
+    with open(f"state/{id}.json", "w") as outfile:
         json.dump(shares, outfile)
 
 
-def get_shares():
+def get_shares(id):
     try:
-        with open('state/shares.json') as json_file:
+        with open(f'state/{id}.json') as json_file:
             return json.load(json_file)
     except (json.JSONDecodeError, FileNotFoundError):
         logger.exception("Error during file load:")
@@ -98,7 +98,7 @@ def help_command(update: Update, context: CallbackContext):
 def profit(update: Update, context: CallbackContext):
     chat_id = str(update.message.chat.id)
     curr_price = get_curr_price()
-    shares_data = get_shares()
+    shares_data = get_shares(chat_id)
 
     today_profit = calc_profit(shares_data.get(chat_id, []), curr_price)
 
@@ -135,17 +135,17 @@ def update(update: Update, context: CallbackContext):
     chat_id = str(update.message.chat.id)
     # remove /update
     update_shares = update_shares[len('/update'):].strip()
-    shares_data = get_shares()
+    shares_data = get_shares(chat_id)
 
     if update_shares == '':
         shares_data[chat_id] = []
-        write_shares(shares_data)
+        write_shares(shares_data, chat_id)
         logger.info(f"Shares have been reset for chat_id = {chat_id}")
         return 'You have reset all your shares'
     else:
         try:
             shares_data[chat_id] = parse_data(update_shares)
-            write_shares(shares_data)
+            write_shares(shares_data, chat_id)
             return 'You have updated your shares'
         except (IndexError, ValueError):
             return 'Error occurred during the update'
@@ -154,7 +154,7 @@ def update(update: Update, context: CallbackContext):
 @with_reply
 def show(update: Update, context: CallbackContext):
     chat_id = str(update.message.chat.id)
-    shares_data = get_shares()
+    shares_data = get_shares(chat_id)
 
     shares = [
         f"| {d['count']:<8n} | ${d['price']:.2f} |"

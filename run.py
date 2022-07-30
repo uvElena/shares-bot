@@ -45,6 +45,11 @@ def calc_profit(shares, curr_price):
     return profit
 
 
+def count_total_shares(shares):
+    total = sum([d['count'] for d in shares])
+    return total
+
+
 # Telegram
 def get_keyboard():
     reply_keyboard = [
@@ -119,11 +124,13 @@ def profit(update: Update, context: CallbackContext):
     ])
 
     today = date.today().strftime("%d.%m.%Y")
+    total_count = count_total_shares(shares_data.get(chat_id, []))
     return '\n'.join([
         '```',
         table,
         f'Date: {today}',
         f'Current price: ${curr_price:<8.2f}',
+        f'Total count: {total_count:<8.2f}',
         f'Total profit: ${today_profit:<8.2f}',
         '```'
     ])

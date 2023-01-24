@@ -5,9 +5,10 @@ from bs4 import BeautifulSoup
 import logging
 from datetime import date
 
-from telegram import Update, ReplyKeyboardMarkup, ParseMode
-from telegram.ext import MessageHandler, Filters, CallbackContext
-from telegram.ext import Updater, CommandHandler
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.constants import ParseMode
+from telegram.ext import MessageHandler, filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, ApplicationBuilder
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -73,21 +74,21 @@ def get_shares(id):
 
 
 def with_reply(func):
-    def inner(update: Update, context: CallbackContext):
-        message = func(update, context)
-        update.message.reply_text(
+    async def inner(update: Update, context: CallbackContext):
+        message = await func(update, context)
+        await update.message.reply_text(
             message, reply_markup=get_keyboard(), parse_mode=ParseMode.MARKDOWN
         )
     return inner
 
 
 @with_reply
-def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: CallbackContext):
     return 'Welcome to Cisco Shares Bot! Select /help to see help message.'
 
 
 @with_reply
-def help_command(update: Update, context: CallbackContext):
+async def help_command(update: Update, context: CallbackContext):
     return '''
 /help - show help message and commands description
 /show - show current shares
@@ -100,7 +101,7 @@ def help_command(update: Update, context: CallbackContext):
 
 
 @with_reply
-def profit(update: Update, context: CallbackContext):
+async def profit(update: Update, context: CallbackContext):
     chat_id = str(update.message.chat.id)
     curr_price = get_curr_price()
     shares_data = get_shares(chat_id)
@@ -137,7 +138,7 @@ def profit(update: Update, context: CallbackContext):
 
 
 @with_reply
-def update(update: Update, context: CallbackContext):
+async def update(update: Update, context: CallbackContext):
     update_shares = update.message.text
     chat_id = str(update.message.chat.id)
     # remove /update
@@ -159,7 +160,7 @@ def update(update: Update, context: CallbackContext):
 
 
 @with_reply
-def show(update: Update, context: CallbackContext):
+async def show(update: Update, context: CallbackContext):
     chat_id = str(update.message.chat.id)
     shares_data = get_shares(chat_id)
 
@@ -179,22 +180,21 @@ def show(update: Update, context: CallbackContext):
 
 
 def main() -> None:
-    updater = Updater(os.environ['TOKEN'])
-    dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("profit", profit))
-    dispatcher.add_handler(CommandHandler("update", update))
-    dispatcher.add_handler(CommandHandler("show", show))
+    application = ApplicationBuilder().token(os.environ['TOKEN']).build()
 
-    dispatcher.add_handler(
-        MessageHandler(Filters.text & ~Filters.command, help_command)
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("profit", profit))
+    application.add_handler(CommandHandler("update", update))
+    application.add_handler(CommandHandler("show", show))
+
+    application.add_handler(
+        MessageHandler(filters.TEXT & (~filters.COMMAND), help_command)
     )
 
-    updater.start_polling()
-    updater.idle()
-
+    application.run_polling()
 
 if __name__ == '__main__':
     main()

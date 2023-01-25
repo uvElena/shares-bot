@@ -124,8 +124,11 @@ async def profit(update: Update, context: CallbackContext):
         separator,
     ])
 
+
     today = date.today().strftime("%d.%m.%Y")
     total_count = count_total_shares(shares_data.get(chat_id, []))
+    today_value = curr_price * total_count
+
     return '\n'.join([
         '```',
         table,
@@ -133,6 +136,7 @@ async def profit(update: Update, context: CallbackContext):
         f'Current price: ${curr_price:<8.2f}',
         f'Total count: {total_count:<8.2f}',
         f'Total profit: ${today_profit:<8.2f}',
+        f'Total value: ${today_value:<8.2f}',
         '```'
     ])
 

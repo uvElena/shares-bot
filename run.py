@@ -115,27 +115,28 @@ async def profit(update: Update, context: CallbackContext):
         for d in shares_data.get(chat_id, [])
     ]
 
-    table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
-    separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
-    table_body = '\n'.join(shares)
-    table = '\n'.join([
-        separator, table_header,
-        separator, table_body,
-        separator,
-    ])
-
-
     today = date.today().strftime("%d.%m.%Y")
     total_count = count_total_shares(shares_data.get(chat_id, []))
     today_value = curr_price * total_count
 
+    separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
+    table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
+    table_body = '\n'.join(shares)
+    table_bottom = f"| {total_count:<8.2f} | ${curr_price:<8.2f} | ${today_profit:<8.2f} |"
+    table = '\n'.join([
+        separator,
+        table_header,
+        separator,
+        table_body,
+        separator,
+        table_bottom,
+        separator,
+    ])
+
     return '\n'.join([
         '```',
-        table,
         f'Date: {today}',
-        f'Current price: ${curr_price:<8.2f}',
-        f'Total count: {total_count:<8.2f}',
-        f'Total profit: ${today_profit:<8.2f}',
+        table,
         f'Total value: ${today_value:<8.2f}',
         '```'
     ])

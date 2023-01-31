@@ -10,6 +10,7 @@ from telegram.constants import ParseMode
 from telegram.ext import MessageHandler, filters, CallbackContext
 from telegram.ext import Updater, CommandHandler, ApplicationBuilder
 
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -28,6 +29,31 @@ def get_curr_price():
     curr_price = soup.find('bg-quote', class_="value").contents
     curr_price = float(curr_price[0])
     return curr_price
+
+
+def get_div_price():
+    url = "https://marketwatch.com/investing/stock/csco"
+    req = requests.get(url)
+    soup = BeautifulSoup(req.content, 'html.parser')
+
+    div_all = soup.find('ul', class_="list list--kv list--col50").contents[23]
+    div_price = div_all.find('span', class_="primary").contents
+    div_price_str = div_price[0]
+    div_price = float(div_price_str[1:])
+
+    return div_price
+
+
+def get_div_date():
+    url = "https://marketwatch.com/investing/stock/csco"
+    req = requests.get(url)
+    soup = BeautifulSoup(req.content, 'html.parser')
+
+    div_all = soup.find('ul', class_="list list--kv list--col50").contents[25]
+    div_date = div_all.find('span', class_="primary").contents
+    div_date = div_date[0]
+
+    return div_date
 
 
 def parse_line(str_line):
@@ -106,8 +132,6 @@ async def profit(update: Update, context: CallbackContext):
     curr_price = get_curr_price()
     shares_data = get_shares(chat_id)
 
-    today_profit = calc_profit(shares_data.get(chat_id, []), curr_price)
-
     shares = [
         f"| {d['count']:<8n} "
         f"| ${d['price']:<8.2f} "
@@ -117,6 +141,10 @@ async def profit(update: Update, context: CallbackContext):
 
     today = date.today().strftime("%d.%m.%Y")
     total_count = count_total_shares(shares_data.get(chat_id, []))
+    today_profit = calc_profit(shares_data.get(chat_id, []), curr_price)
+    today_div_quarter = get_div_price() * total_count
+    today_div_year = today_div_quarter * 4
+    ex_div_date = get_div_date()
     today_value = curr_price * total_count
 
     separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
@@ -137,7 +165,10 @@ async def profit(update: Update, context: CallbackContext):
         '```',
         f'Date: {today}',
         table,
-        f'Total value: ${today_value:<8.2f}',
+        f'Dividend Q:       ${today_div_quarter:<8.2f}',
+        f'Dividend Y:       ${today_div_year:<8.2f}',
+        f'Ex-dividend date: {ex_div_date}',
+        f'Total value:      ${today_value:<8.2f}',
         '```'
     ])
 
@@ -188,7 +219,6 @@ def main() -> None:
 
     application = ApplicationBuilder().token(os.environ['TOKEN']).build()
 
-
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("profit", profit))
@@ -200,6 +230,7 @@ def main() -> None:
     )
 
     application.run_polling()
+
 
 if __name__ == '__main__':
     main()

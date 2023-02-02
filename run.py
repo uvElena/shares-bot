@@ -3,7 +3,7 @@ import requests
 import json
 from bs4 import BeautifulSoup
 import logging
-from datetime import date
+from datetime import date, datetime
 
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.constants import ParseMode
@@ -144,8 +144,11 @@ async def profit(update: Update, context: CallbackContext):
     today_profit = calc_profit(shares_data.get(chat_id, []), curr_price)
     today_div_quarter = get_div_price() * total_count
     today_div_year = today_div_quarter * 4
-    ex_div_date = get_div_date()
     today_value = curr_price * total_count
+    div_date = get_div_date()
+    div_date_string = 'Jan 4, 2023'
+    div_date_object = datetime.strptime(div_date_string, "%b %d, %Y")
+    div_date = datetime.strftime(div_date_object, "%d.%m.%Y")
 
     separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
     table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
@@ -167,7 +170,7 @@ async def profit(update: Update, context: CallbackContext):
         table,
         f'Dividend Q:       ${today_div_quarter:<8.2f}',
         f'Dividend Y:       ${today_div_year:<8.2f}',
-        f'Ex-dividend date: {ex_div_date}',
+        f'Ex-dividend date: {div_date}',
         f'Total value:      ${today_value:<8.2f}',
         '```'
     ])

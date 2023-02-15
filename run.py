@@ -1,14 +1,14 @@
 import os
 import requests
 import json
-from bs4 import BeautifulSoup
 import logging
+from bs4 import BeautifulSoup
 from datetime import date, datetime
 
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import MessageHandler, filters, CallbackContext
-from telegram.ext import Updater, CommandHandler, ApplicationBuilder
+from telegram.ext import CommandHandler, ApplicationBuilder
 
 
 logging.basicConfig(
@@ -19,41 +19,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_curr_price():
-    url = "https://marketwatch.com/investing/stock/csco"
-    req = requests.get(url)
-    soup = BeautifulSoup(req.content, 'html.parser')
-    # <bg-quote
-    # channel="/zigman2/quotes/209509471/composite,/zigman2/quotes/209509471/lastsale"
-    # class="value" field="Last" format="0,0.00" session="pre">63.38</bg-quote>
-    curr_price = soup.find('bg-quote', class_="value").contents
-    curr_price = float(curr_price[0])
-    return curr_price
-
-
-def get_div_price():
+def get_shares_data():
     url = "https://marketwatch.com/investing/stock/csco"
     req = requests.get(url)
     soup = BeautifulSoup(req.content, 'html.parser')
 
-    div_all = soup.find('ul', class_="list list--kv list--col50").contents[23]
-    div_price = div_all.find('span', class_="primary").contents
-    div_price_str = div_price[0]
+    # '48.73'
+    curr_price_str = soup.find('bg-quote', class_="value").contents[0]
+    curr_price = float(curr_price_str)
+
+    div_data = soup.find('ul', class_="list list--kv list--col50")
+
+    div_price_data = div_data.contents[23]
+    # '$0.38'
+    div_price_str = div_price_data.find('span', class_="primary").contents[0]
     div_price = float(div_price_str[1:])
 
-    return div_price
+    div_date_data = div_data.contents[25]
+    # 'Jan 4, 2023'
+    div_date_str = div_date_data.find('span', class_="primary").contents[0]
+    div_date = datetime.strptime(div_date_str, "%b %d, %Y")
 
-
-def get_div_date():
-    url = "https://marketwatch.com/investing/stock/csco"
-    req = requests.get(url)
-    soup = BeautifulSoup(req.content, 'html.parser')
-
-    div_all = soup.find('ul', class_="list list--kv list--col50").contents[25]
-    div_date = div_all.find('span', class_="primary").contents
-    div_date = div_date[0]
-
-    return div_date
+    return {
+        'curr_price': curr_price,
+        'div_price': div_price,
+        'div_date': div_date,
+    }
 
 
 def parse_line(str_line):
@@ -129,7 +120,8 @@ async def help_command(update: Update, context: CallbackContext):
 @with_reply
 async def profit(update: Update, context: CallbackContext):
     chat_id = str(update.message.chat.id)
-    curr_price = get_curr_price()
+    actual_data = get_shares_data()
+    curr_price = actual_data['curr_price']
     shares_data = get_shares(chat_id)
 
     shares = [
@@ -142,13 +134,15 @@ async def profit(update: Update, context: CallbackContext):
     today = date.today().strftime("%d.%m.%Y")
     total_count = count_total_shares(shares_data.get(chat_id, []))
     today_profit = calc_profit(shares_data.get(chat_id, []), curr_price)
-    div_quarter = get_div_price() * total_count
-    div_year = div_quarter * 4
     today_value = curr_price * total_count
-    div_date = get_div_date()
-    #  'Jan 4, 2023'
-    div_date = datetime.strptime(div_date, "%b %d, %Y")
-    div_date = datetime.strftime(div_date, "%d.%m.%Y")
+
+    div_price = actual_data['div_price']
+    div_quarter = div_price * total_count
+    div_year = div_quarter * 4
+
+    div_date = actual_data['div_date']
+    # 04.01.2023
+    div_date_str = datetime.strftime(div_date, "%d.%m.%Y")
 
     separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
     table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
@@ -168,10 +162,10 @@ async def profit(update: Update, context: CallbackContext):
         '```',
         f'Date: {today}',
         table,
-        f'Ex-dividend:  {div_date}',
-        f'Dividend Q:   ${div_quarter:<8.2f}',
-        f'Dividend Y:   ${div_year:<8.2f}',
-        f'Total value:  ${today_value:<8.2f}',
+        f'Ex-dividend: {div_date_str}',
+        f'Dividend Q:  ${div_quarter:<8.2f}',
+        f'Dividend Y:  ${div_year:<8.2f}',
+        f'Total value: ${today_value:<8.2f}',
         '```'
     ])
 

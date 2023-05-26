@@ -50,7 +50,11 @@ def get_shares_data():
 def parse_line(str_line):
     lst = str_line.split()
     # ['05/30/2015', '$12.0279', 'Dividend', 'Reinvestment', '4.3079']
-    return {'price': float(lst[1].lstrip('$')), 'count': float(lst[-1])}
+    return {
+        'price': float(lst[1].lstrip('$')),
+        'dividend': lst[2] == 'Dividend',
+        'count': float(lst[-1]),
+    }
 
 
 def parse_data(str_lines):
@@ -125,10 +129,14 @@ async def profit(update: Update, context: CallbackContext):
     shares_data = get_shares(chat_id)
 
     shares = [
-        f"| {d['count']:<8n} "
-        f"| ${d['price']:<8.2f} "
+
+        f"| {d['count']:<7n} "
+        f"| ${d['price']:<6.2f} "
+        f"| {'*' if d['dividend'] else ' '} "
         f"| ${(curr_price - d['price']) * d['count']:<8.2f} |"
+
         for d in shares_data.get(chat_id, [])
+
     ]
 
     today = date.today().strftime("%d.%m.%Y")
@@ -144,10 +152,10 @@ async def profit(update: Update, context: CallbackContext):
     # 04.01.2023
     div_date_str = datetime.strftime(div_date, "%d.%m.%Y")
 
-    separator = '+' + '-' * 10 + '+' + '-' * 11 + '+' + '-' * 11 + '+'
-    table_header = f"| {'Count':<8} | {'Price':<9} | {'Profit':<9} |"
+    separator = '+' + '-' * 9 + '+' + '-' * 9 + '+' + '-' * 3 + '+' + '-' * 11 + '+'
+    table_header = f"| {'Count':<7} | {'Price':<7} | {'D':<1} | {'Profit':<9} |"
     table_body = '\n'.join(shares)
-    table_bottom = f"| {total_count:<8.2f} | ${curr_price:<8.2f} | ${today_profit:<8.2f} |"
+    table_bottom = f"| {total_count:<7.2f} | ${curr_price:<6.2f} |   | ${today_profit:<8.2f} |"
     table = '\n'.join([
         separator,
         table_header,
@@ -198,12 +206,12 @@ async def show(update: Update, context: CallbackContext):
     shares_data = get_shares(chat_id)
 
     shares = [
-        f"| {d['count']:<8n} | ${d['price']:.2f} |"
+        f"| {d['count']:<8n} | {'*' if d['dividend'] else ' '} | ${d['price']:.2f} |"
         for d in shares_data.get(chat_id, [])
     ]
 
-    table_header = f"| {'Count':<8} | Price  |"
-    separator = '+' + '-' * 10 + '+' + '-' * 8 + '+'
+    table_header = f"| {'Count':<8} | {'D':<1} | Price  |"
+    separator = '+' + '-' * 10 + '+' + '-' * 3 + '+' + '-' * 8 + '+'
     table_body = '\n'.join(shares)
     table = '\n'.join([
         separator, table_header, separator, table_body, separator

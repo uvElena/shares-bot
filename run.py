@@ -63,13 +63,21 @@ def parse_data(str_lines):
 
 
 def calc_profit(shares, curr_price):
-    profit = sum([(curr_price - s['price']) * s['count'] for s in shares])
-    return profit
+    return sum([(curr_price - s['price']) * s['count'] for s in shares])
+
+
+def calc_profit_div(shares, curr_price):
+    shares_div = [s for s in shares if s['dividend']]
+    shares_no_div = [s for s in shares if not s['dividend']]
+
+    profit_div = curr_price * sum([s['count'] for s in shares_div])
+    profit_no_div = calc_profit(shares_no_div, curr_price)
+
+    return profit_div + profit_no_div
 
 
 def count_total_shares(shares):
-    total = sum([d['count'] for d in shares])
-    return total
+    return sum([d['count'] for d in shares])
 
 
 # Telegram
@@ -141,7 +149,10 @@ async def profit(update: Update, context: CallbackContext):
 
     today = date.today().strftime("%d.%m.%Y")
     total_count = count_total_shares(shares_data.get(chat_id, []))
-    today_profit = calc_profit(shares_data.get(chat_id, []), curr_price)
+
+    profit_total = calc_profit(shares_data.get(chat_id, []), curr_price)
+    profit_total_div = calc_profit_div(shares_data.get(chat_id, []), curr_price)
+
     today_value = curr_price * total_count
 
     div_price = actual_data['div_price']
@@ -155,7 +166,8 @@ async def profit(update: Update, context: CallbackContext):
     separator = '+' + '-' * 9 + '+' + '-' * 9 + '+' + '-' * 3 + '+' + '-' * 11 + '+'
     table_header = f"| {'Count':<7} | {'Price':<7} | {'D':<1} | {'Profit':<9} |"
     table_body = '\n'.join(shares)
-    table_bottom = f"| {total_count:<7.2f} | ${curr_price:<6.2f} |   | ${today_profit:<8.2f} |"
+    table_bottom = f"| {total_count:<7.2f} | ${curr_price:<6.2f} |   | ${profit_total:<8.2f} |"
+    table_bottom_div = f"|         |         | * | ${profit_total_div:<8.2f} |"
     table = '\n'.join([
         separator,
         table_header,
@@ -163,6 +175,7 @@ async def profit(update: Update, context: CallbackContext):
         table_body,
         separator,
         table_bottom,
+        table_bottom_div,
         separator,
     ])
 

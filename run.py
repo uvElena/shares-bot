@@ -99,7 +99,7 @@ def get_shares(id):
             return json.load(json_file)
     except (json.JSONDecodeError, FileNotFoundError):
         logger.exception("Error during file load:")
-        return {}
+        return []
 
 
 def with_reply(func):
@@ -143,15 +143,15 @@ async def profit(update: Update, context: CallbackContext):
         f"| {'*' if d['dividend'] else ' '} "
         f"| ${(curr_price - d['price']) * d['count']:<8.2f} |"
 
-        for d in shares_data.get(chat_id, [])
+        for d in shares_data
 
     ]
 
     today = date.today().strftime("%d.%m.%Y")
-    total_count = count_total_shares(shares_data.get(chat_id, []))
+    total_count = count_total_shares(shares_data)
 
-    profit_total = calc_profit(shares_data.get(chat_id, []), curr_price)
-    profit_total_div = calc_profit_div(shares_data.get(chat_id, []), curr_price)
+    profit_total = calc_profit(shares_data, curr_price)
+    profit_total_div = calc_profit_div(shares_data, curr_price)
 
     today_value = curr_price * total_count
 
@@ -197,16 +197,15 @@ async def update(update: Update, context: CallbackContext):
     chat_id = str(update.message.chat.id)
     # remove /update
     update_shares = update_shares[len('/update'):].strip()
-    shares_data = get_shares(chat_id)
 
     if update_shares == '':
-        shares_data[chat_id] = []
+        shares_data = []
         write_shares(shares_data, chat_id)
         logger.info(f"Shares have been reset for chat_id = {chat_id}")
         return 'You have reset all your shares'
     else:
         try:
-            shares_data[chat_id] = parse_data(update_shares)
+            shares_data = parse_data(update_shares)
             write_shares(shares_data, chat_id)
             return 'You have updated your shares'
         except (IndexError, ValueError):
@@ -220,7 +219,7 @@ async def show(update: Update, context: CallbackContext):
 
     shares = [
         f"| {d['count']:<8n} | {'*' if d['dividend'] else ' '} | ${d['price']:.2f} |"
-        for d in shares_data.get(chat_id, [])
+        for d in shares_data
     ]
 
     table_header = f"| {'Count':<8} | {'D':<1} | Price  |"

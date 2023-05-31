@@ -139,7 +139,7 @@ async def profit(update: Update, context: CallbackContext):
     shares = [
 
         f"| {d['count']:<7n} "
-        f"| ${d['price']:<6.2f} "
+        f"| ${d['price']:<5.2f} "
         f"| {'*' if d['dividend'] else ' '} "
         f"| ${(curr_price - d['price']) * d['count']:<8.2f} |"
 
@@ -163,11 +163,11 @@ async def profit(update: Update, context: CallbackContext):
     # 04.01.2023
     div_date_str = datetime.strftime(div_date, "%d.%m.%Y")
 
-    separator = '+' + '-' * 9 + '+' + '-' * 9 + '+' + '-' * 3 + '+' + '-' * 11 + '+'
-    table_header = f"| {'Count':<7} | {'Price':<7} | {'D':<1} | {'Profit':<9} |"
+    separator = '+' + '-' * 9 + '+' + '-' * 8 + '+' + '-' * 3 + '+' + '-' * 11 + '+'
+    table_header = f"| {'Count':<7} | {'Price':<6} | {'D':<1} | {'Profit':<9} |"
     table_body = '\n'.join(shares)
-    table_bottom = f"| {total_count:<7.2f} | ${curr_price:<6.2f} |   | ${profit_total:<8.2f} |"
-    table_bottom_div = f"|         |         | * | ${profit_total_div:<8.2f} |"
+    table_bottom = f"| {total_count:<7.2f} | ${curr_price:<5.2f} |   | ${profit_total:<8.2f} |"
+    table_bottom_div = f"| {'':<7} | {'':<6} | * | ${profit_total_div:<8.2f} |"
     table = '\n'.join([
         separator,
         table_header,

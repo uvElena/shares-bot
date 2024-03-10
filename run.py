@@ -21,11 +21,18 @@ logger = logging.getLogger(__name__)
 
 def get_shares_data():
     url = "https://marketwatch.com/investing/stock/csco"
-    req = requests.get(url)
+    req = requests.get(
+        url,
+        headers={
+            "User-Agent": "Firefox/47.0",
+            "Accept-Language": "en-US"
+        }
+    )
     soup = BeautifulSoup(req.content, 'html.parser')
 
     # '48.73'
     curr_price_str = soup.find('bg-quote', class_="value").contents[0]
+
     curr_price = float(curr_price_str)
 
     div_data = soup.find('ul', class_="list list--kv list--col50")

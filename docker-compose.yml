@@ -3,5 +3,6 @@ services:
     build: .
     environment:
       - TOKEN=${TOKEN}
+      - APIKEY=${APIKEY}
     volumes:
       - ./state:/shares-bot/state

@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_shares_data():
+def get_shares_marketwatch():
     url = "https://marketwatch.com/investing/stock/csco"
     req = requests.get(
         url,
@@ -53,6 +53,27 @@ def get_shares_data():
         'div_date': div_date,
     }
 
+def get_shares_data():
+    api_key = os.environ['APIKEY']
+
+    url_prev = "https://api.polygon.io/v2/aggs/ticker/CSCO/prev"
+    url_div = "https://api.polygon.io/v3/reference/dividends"
+
+    req_prev = requests.get(url_prev, params={'apiKey': api_key})
+    req_div = requests.get(url_div, params={'apiKey': api_key, 'ticker': 'CSCO'})
+
+    curr_price = req_prev.json()['results'][0]['c']
+
+    div_price = req_div.json()['results'][0]['cash_amount']
+
+    div_date_str = req_div.json()['results'][0]['ex_dividend_date']
+    div_date = datetime.strptime(div_date_str, "%Y-%m-%d")
+
+    return {
+        'curr_price': curr_price,
+        'div_price': div_price,
+        'div_date': div_date,
+    }
 
 def parse_line(str_line):
     lst = str_line.split()
